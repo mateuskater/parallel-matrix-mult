@@ -28,8 +28,8 @@ int cordToIndice(int i, int j, int nl, int nc){
 // Multiplica matriz A pela B e salva na C
 void multMatriz(double *A, double *B, double *C, int nla, int m, int ncb){
    int i, j;
-   for (int x = 0; x < m * m; x++){
-      indiceToCord(x, m, m, &i, &j);
+   for (int x = 0; x < nla * ncb; x++){
+      indiceToCord(x, nla, ncb, &i, &j);
       C[x] = 0;
       for (int y = 0; y < m; y++){
          C[x] += A[cordToIndice(i, y, nla, m)] * B[cordToIndice(y, j, m, ncb)];
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
 
    double *a = geraMatriz(nla, m);
    double *b = geraMatriz(m, ncb);
-   double *c = malloc(m * m * sizeof(double));
+   double *c = malloc(nla * ncb * sizeof(double));
 
    multMatriz(a, b, c, nla, m, ncb);
 
@@ -70,9 +70,9 @@ int main(int argc, char *argv[]){
    printf("]\n");
 
    printf("c = [\n");
-   for (int i = 0; i < m; i++) {
-      for (int j = 0; j < m; j++) 
-         printf("\t%0.2f", c[cordToIndice(i, j, m, m)]);
+   for (int i = 0; i < nla; i++) {
+      for (int j = 0; j < ncb; j++) 
+         printf("\t%0.2f", c[cordToIndice(i, j, nla, ncb)]);
       printf("\n");
    }
    printf("]\n");
