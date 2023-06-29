@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <mpi.h>
 #include "chrono.c"
 
 #define MAX_DOUBLE 100000000.00
 
 int nla, ncb, m;
+int nproc, rank;
 
 double *geraMatriz(int nl, int nc){
    double *resultado = malloc(nl * nc * sizeof(double));
@@ -37,6 +39,22 @@ void multMatriz(double *A, double *B, double *C, int nla, int m, int ncb){
    }
 }
 
+void parallelMulMatriz(double *A, double *B, double *C, int nla, int m, int ncb){
+   // Alocar as matrizes/vetores temporários de cada thread
+   double *a = malloc(m   *       sizeof(double)); // uma linha de A
+   double *b = B;
+   if (rank != 0)
+      b = malloc(m   * ncb * sizeof(double)); // a matriz B
+   double *c = malloc(ncb *       sizeof(double)); // uma linha de C
+   if (a==NULL || b==NULL || c==NULL){
+      fprintf(stderr, "Could not alocate matrixes, my rank: %d\n");
+      return;
+   }
+
+   // Broadcast da matriz b
+   MPI_Bcast(b, m * ncb, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+}
+
 int main(int argc, char *argv[]){
 
    if (argc < 4){
@@ -47,33 +65,25 @@ int main(int argc, char *argv[]){
    m   = atoi(argv[2]);
    ncb = atoi(argv[3]);
 
-   double *a = geraMatriz(nla, m);
-   double *b = geraMatriz(m, ncb);
-   double *c = malloc(nla * ncb * sizeof(double));
+   MPI_Init(&argc, &argv);
+   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   double *a = NULL;
+   double *b = NULL;
+   double *c = NULL;
 
-   multMatriz(a, b, c, nla, m, ncb);
-
-   printf("a = [\n");
-   for (int i = 0; i < nla; i++) {
-      for (int j = 0; j < m; j++) 
-         printf("\t%0.2f", a[cordToIndice(i, j, nla, m)]);
-      printf("\n");
+   if (rank == 0){
+      a = geraMatriz(nla, m);
+      b = geraMatriz(m, ncb);
+      c = malloc(nla * ncb * sizeof(double));
+      if (a==NULL || b==NULL || c==NULL){
+         fprintf(stderr, "Could not alocate matrixes\n");
+         return 0;
+      }
    }
-   printf("]\n");
 
-   printf("b = [\n");
-   for (int i = 0; i < m; i++) {
-      for (int j = 0; j < ncb; j++) 
-         printf("\t%0.2f", b[cordToIndice(i, j, m, ncb)]);
-      printf("\n");
-   }
-   printf("]\n");
+   parallelMulMatriz(a, b, c, nla, m, ncb);
 
-   printf("c = [\n");
-   for (int i = 0; i < nla; i++) {
-      for (int j = 0; j < ncb; j++) 
-         printf("\t%0.2f", c[cordToIndice(i, j, nla, ncb)]);
-      printf("\n");
-   }
-   printf("]\n");
+   MPI_Finalize();
+
 }
