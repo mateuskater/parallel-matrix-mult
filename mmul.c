@@ -8,9 +8,10 @@
 
 int nla, ncb, m;
 int nproc, rank;
+chronometer_t myBroadcastChrono;
 
 double *geraMatriz(int nl, int nc){
-   double *resultado = malloc(nl * nc * sizeof(double));
+   double *resultado = (double*)malloc(nl * nc * sizeof(double));
    for(int x = 0; x < nl*nc; x++)
       resultado[x] = (double)random() / DOUBLE_DIVIDE;
    return resultado;
@@ -41,11 +42,11 @@ void multMatriz(double *A, double *B, double *C, int nla, int m, int ncb){
 
 void parallelMultMatriz(double *A, double *B, double *C, int nla, int m, int ncb){
    // Alocar as matrizes/vetores temporários de cada thread
-   double *a = malloc(m * sizeof(double)); // uma linha de A
+   double *a = (double*)malloc(m * sizeof(double)); // uma linha de A
    double *b = B;
    if (rank != 0)
-      b = malloc(m * ncb * sizeof(double)); // a matriz B
-   double *c = malloc(ncb * sizeof(double)); // uma linha de C
+      b = (double*)malloc(m * ncb * sizeof(double)); // a matriz B
+   double *c = (double*)malloc(ncb * sizeof(double)); // uma linha de C
 
    if (a==NULL || b==NULL || c==NULL){
       fprintf(stderr, "Could not alocate matrixes, my rank: %d\n");
@@ -90,39 +91,34 @@ int main(int argc, char *argv[]){
    if (rank == 0){
       a = geraMatriz(nla, m);
       b = geraMatriz(m, ncb);
-      c = malloc(nla * ncb * sizeof(double));
+      c = (double*)malloc(nla * ncb * sizeof(double));
       if (a==NULL || b==NULL || c==NULL){
          fprintf(stderr, "Could not alocate matrixes\n");
          return 0;
       }
    }
 
+   if (rank == 0) {
+      chrono_reset(&myBroadcastChrono);
+      chrono_start(&myBroadcastChrono);
+   }
+
    parallelMultMatriz(a, b, c, nla, m, ncb);
 
-   if (rank == 0){
-      printf("a = [\n");
-      for (int i = 0; i < nla; i++) {
-         for (int j = 0; j < m; j++) 
-            printf("\t%0.2f", a[cordToIndice(i, j, nla, m)]);
-         printf("\n");
-      }
-      printf("]\n");
+   MPI_Barrier(MPI_COMM_WORLD);
 
-      printf("b = [\n");
-      for (int i = 0; i < m; i++) {
-         for (int j = 0; j < ncb; j++) 
-            printf("\t%0.2f", b[cordToIndice(i, j, m, ncb)]);
-         printf("\n");
-      }
-      printf("]\n");
+   if(rank == 0){
+      chrono_stop(&myBroadcastChrono);
+      chrono_reportTime(&myBroadcastChrono, "myBroadcastChrono");
 
-      printf("c = [\n");
-      for (int i = 0; i < nla; i++) {
-         for (int j = 0; j < ncb; j++) 
-            printf("\t%0.2f", c[cordToIndice(i, j, nla, ncb)]);
-         printf("\n");
-      }
-      printf("]\n");
+      // calcular e imprimir a VAZAO (nesse caso: numero de BYTES/s)
+      double total_time_in_seconds = (double)chrono_gettotal(&myBroadcastChrono) /
+         ((double)1000 * 1000 * 1000);
+      double total_time_in_micro = (double)chrono_gettotal(&myBroadcastChrono) /
+         ((double)1000);
+      printf("total_time_in_seconds: %lf s\n", total_time_in_seconds);
+      double MBPS = (((double)nla*ncb) / ((double)total_time_in_seconds*1000*1000));
+      printf("Throughput: %lf MB/s\n", MBPS*(nproc-1));
    }
 
    MPI_Finalize();

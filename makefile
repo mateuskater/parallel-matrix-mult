@@ -1,4 +1,4 @@
-CC = mpicc
+CC = mpic++
 
 SRC  = chrono.c
 MAIN = mmul
