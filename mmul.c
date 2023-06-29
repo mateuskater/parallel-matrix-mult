@@ -8,7 +8,7 @@
 
 int nla, ncb, m;
 int nproc, rank;
-chronometer_t myBroadcastChrono;
+chronometer_t mmultChrono;
 char hostName[MPI_MAX_PROCESSOR_NAME];
 
 double *geraMatriz(int nl, int nc){
@@ -100,8 +100,8 @@ int main(int argc, char *argv[]){
    }
 
    if (rank == 0) {
-      chrono_reset(&myBroadcastChrono);
-      chrono_start(&myBroadcastChrono);
+      chrono_reset(&mmultChrono);
+      chrono_start(&mmultChrono);
    }
 
    parallelMultMatriz(a, b, c, nla, m, ncb);
@@ -113,17 +113,17 @@ int main(int argc, char *argv[]){
    printf("Process %d ran on host %s\n", rank, hostName);
 
    if(rank == 0){
-      chrono_stop(&myBroadcastChrono);
-      chrono_reportTime(&myBroadcastChrono, "myBroadcastChrono");
+      chrono_stop(&mmultChrono);
+      chrono_reportTime(&mmultChrono, "mmultChrono");
 
       // calcular e imprimir a VAZAO (nesse caso: numero de BYTES/s)
-      double total_time_in_seconds = (double)chrono_gettotal(&myBroadcastChrono) /
+      double total_time_in_seconds = (double)chrono_gettotal(&mmultChrono) /
          ((double)1000 * 1000 * 1000);
-      double total_time_in_micro = (double)chrono_gettotal(&myBroadcastChrono) /
+      double total_time_in_micro = (double)chrono_gettotal(&mmultChrono) /
          ((double)1000);
       printf("total_time_in_seconds: %lf s\n", total_time_in_seconds);
-      double MBPS = (((double)nla*ncb) / ((double)total_time_in_seconds*1000*1000));
-      printf("Throughput: %lf MB/s\n", MBPS*(nproc-1));
+      double GFLOPS = (((double)nla*m*ncb) / ((double)total_time_in_seconds*1000*1000*1000));
+      printf("Throughput: %lf GFLOPS\n", GFLOPS*(nproc-1));
    }
 
    // se for -v
