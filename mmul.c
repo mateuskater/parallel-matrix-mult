@@ -121,6 +121,20 @@ int main(int argc, char *argv[]){
       printf("Throughput: %lf MB/s\n", MBPS*(nproc-1));
    }
 
+   // se for -v
+   if (argc > 4 && !strcmp(argv[4], "-v") && rank == 0) {
+      double *d = (double*)malloc(nla * ncb * sizeof(double));
+      multMatriz(a, b, d, nla, m, ncb);
+      int i, j;
+      for (int x = 0; x < nla * ncb; x++) {
+         if (c[x] != d[x]) {
+            indiceToCord(x, nla, ncb, &i, &j);
+            fprintf(stderr, "ERROR ON ELEMENT (%d, %d) OF THE MATRIX\n", i, j);
+            fprintf(stderr, "C[%d][%d] is %0.2f and should be %0.2f\n",
+                  i, j, c[x], d[x]);
+         }
+      }
+   }
    MPI_Finalize();
 
 }
