@@ -1,7 +1,7 @@
 CC = mpicc
 
 SRC  = chrono.c
-MAIN = gpt
+MAIN = mmul
 
 CFLAGS = -I./
 LDLIBS = -lmpi
