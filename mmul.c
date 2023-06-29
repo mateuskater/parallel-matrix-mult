@@ -9,6 +9,7 @@
 int nla, ncb, m;
 int nproc, rank;
 chronometer_t myBroadcastChrono;
+char hostName[MPI_MAX_PROCESSOR_NAME];
 
 double *geraMatriz(int nl, int nc){
    double *resultado = (double*)malloc(nl * nc * sizeof(double));
@@ -106,6 +107,10 @@ int main(int argc, char *argv[]){
    parallelMultMatriz(a, b, c, nla, m, ncb);
 
    MPI_Barrier(MPI_COMM_WORLD);
+
+   int resultLen;
+   MPI_Get_processor_name(hostName, &resultLen);
+   printf("Process %d ran on host %s\n", rank, hostName);
 
    if(rank == 0){
       chrono_stop(&myBroadcastChrono);
